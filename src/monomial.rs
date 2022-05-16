@@ -23,22 +23,20 @@ impl Monomial {
             res.push('-');
         }
 
-        if self.coefficient.abs() != 1 {
-            res += self.coefficient.abs().to_string().as_str();
+        if self.coefficient.abs() != 1 || self.power == 0 {
+            res.push_str(self.coefficient.abs().to_string().as_str());
         }
 
-        if self.power == 0 {
-            res.clone()
-        } else {
+        if self.power != 0 {
             res.push('x');
 
             if self.power != 1 {
                 res.push('^');
-                res += self.power.to_string().as_str();
+                res.push_str(self.power.to_string().as_str());
             }
-
-            res.clone()
         }
+
+        res
     }
 }
 

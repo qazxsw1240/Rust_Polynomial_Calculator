@@ -9,17 +9,7 @@ trait SubStr {
 
 impl SubStr for String {
     fn substr(&self, start: usize, len: usize) -> String {
-        let mut res = String::new();
-
-        for (i, ch) in self.chars().skip(start).enumerate() {
-            if i == len {
-                break;
-            }
-
-            res.push(ch);
-        }
-
-        res
+        self.chars().skip(start).take(len).collect::<String>()
     }
 }
 
@@ -55,23 +45,23 @@ impl Polynomial {
     pub fn to_string(&self) -> String {
         let mut res = String::new();
 
-        for (i, &m) in self.monomials.iter().enumerate() {
-            if i != 0 {
-                if m.coefficient < 0 {
-                    res.push_str(" - ");
-                } else {
-                    res.push_str(" + ");
-                }
-            }
-
-            if i == 0 {
-                res.push_str(m.to_string().as_str())
+        self.monomials.iter().enumerate().for_each(|(i, &m)| {
+            let monomial_str = if i == 0 {
+                m.to_string()
             } else {
-                let abs_monomial = Monomial::new(m.coefficient.abs(), m.power);
+                Monomial::new(m.coefficient.abs(), m.power).to_string()
+            };
 
-                res.push_str(abs_monomial.to_string().as_str())
+            if i != 0 {
+                res.push_str(if m.coefficient < 0 {
+                    " - "
+                } else {
+                    " + "
+                });
             }
-        }
+
+            res.push_str(monomial_str.as_str());
+        });
 
         res
     }
@@ -81,23 +71,21 @@ impl FromStr for Polynomial {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut compressed_string = String::from(s);
+        #[inline]
+        fn is_valid_char(c: u8) -> bool {
+            let ch = c as char;
+            ch.is_digit(10) || ch == '+' || ch == '-' || ch == '^' || ch == 'x'
+        }
 
-        compressed_string = compressed_string.replace(" ", "");
+        let mut compressed_string = String::from(s).replace(" ", "");
 
-        if compressed_string.len() == 0 {
+        if compressed_string.len() == 0 || compressed_string.as_bytes().iter().any(|&byte| !is_valid_char(byte)) {
             return Err(());
         }
 
-        for &byte in compressed_string.as_bytes() {
-            let ch = byte as char;
+        let first_char = compressed_string.as_bytes()[0] as char;
 
-            if !ch.is_digit(10) && ch != '+' && ch != '-' && ch != '^' && ch != 'x' {
-                return Err(());
-            }
-        }
-
-        if (compressed_string.as_bytes()[0] as char).is_digit(10) || (compressed_string.as_bytes()[0] as char) == 'x' {
+        if first_char.is_digit(10) || first_char == 'x' {
             compressed_string.insert(0, '+');
         }
 
@@ -164,9 +152,7 @@ impl Add for Polynomial {
     fn add(self, rhs: Self) -> Self::Output {
         let mut res = self.clone();
 
-        for &m in &rhs.monomials {
-            res.push(m);
-        }
+        rhs.monomials.iter().for_each(|&m| res.push(m));
 
         res
     }
@@ -178,9 +164,7 @@ impl Sub for Polynomial {
     fn sub(self, rhs: Self) -> Self::Output {
         let mut res = self.clone();
 
-        for &m in &rhs.monomials {
-            res.push(-m);
-        }
+        rhs.monomials.iter().for_each(|&m| res.push(-m));
 
         res
     }
