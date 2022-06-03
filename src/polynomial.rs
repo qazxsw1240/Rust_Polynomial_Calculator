@@ -1,17 +1,8 @@
 use std::ops::{Add, Sub};
 use std::str::FromStr;
 
-use crate::Monomial;
-
-trait SubStr {
-    fn substr(&self, start: usize, len: usize) -> String;
-}
-
-impl SubStr for String {
-    fn substr(&self, start: usize, len: usize) -> String {
-        self.chars().skip(start).take(len).collect::<String>()
-    }
-}
+use crate::monomial::Monomial;
+use crate::substr::SubStr;
 
 #[derive(Clone, Debug)]
 pub struct Polynomial {
@@ -21,16 +12,16 @@ pub struct Polynomial {
 impl Polynomial {
     pub fn new() -> Self {
         Self {
-            monomials: Vec::new()
+            monomials: Vec::new(),
         }
     }
 
     pub fn push(&mut self, m: Monomial) {
         for (i, monomial) in self.monomials.iter_mut().enumerate() {
-            if monomial.power == m.power {
-                monomial.coefficient += m.coefficient;
+            if monomial.is_same_power(&m) {
+                monomial.add_coefficient(&m);
 
-                if monomial.coefficient == 0 {
+                if monomial.is_zero() {
                     self.monomials.remove(i);
                 }
 
@@ -49,15 +40,11 @@ impl Polynomial {
             let monomial_str = if i == 0 {
                 m.to_string()
             } else {
-                Monomial::new(m.coefficient.abs(), m.power).to_string()
+                m.abs().to_string()
             };
 
             if i != 0 {
-                res.push_str(if m.coefficient < 0 {
-                    " - "
-                } else {
-                    " + "
-                });
+                res.push_str(if m.sgn() < 0 { " - " } else { " + " });
             }
 
             res.push_str(monomial_str.as_str());
@@ -71,30 +58,34 @@ impl FromStr for Polynomial {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        #[inline]
+        #[inline(always)]
         fn is_valid_char(c: u8) -> bool {
             let ch = c as char;
             ch.is_digit(10) || ch == '+' || ch == '-' || ch == '^' || ch == 'x'
         }
 
-        let mut compressed_string = String::from(s).replace(" ", "");
+        let mut clean_string = String::from(s).replace(" ", "");
 
-        if compressed_string.len() == 0 || compressed_string.as_bytes().iter().any(|&byte| !is_valid_char(byte)) {
+        if clean_string.len() == 0 || clean_string
+            .as_bytes()
+            .iter()
+            .any(|&byte| !is_valid_char(byte))
+        {
             return Err(());
         }
 
-        let first_char = compressed_string.as_bytes()[0] as char;
+        let first_char = clean_string.as_bytes()[0] as char;
 
         if first_char.is_digit(10) || first_char == 'x' {
-            compressed_string.insert(0, '+');
+            clean_string.insert(0, '+');
         }
 
-        compressed_string.push('+');
+        clean_string.push('+');
 
         let mut j = 0usize;
         let mut monomial_strings = Vec::<String>::new();
 
-        let bytes = compressed_string.as_bytes();
+        let bytes = clean_string.as_bytes();
 
         for (i, &byte) in bytes.iter().enumerate().skip(1) {
             let ch = byte as char;
@@ -103,19 +94,14 @@ impl FromStr for Polynomial {
                 continue;
             }
 
-            monomial_strings.push(compressed_string.substr(j, i - j));
+            monomial_strings.push(clean_string.substr(j, i - j));
             j = i;
         }
 
         for monomial_string in &mut monomial_strings {
-            match monomial_string.chars().nth(1) {
-                None => {
-                    return Err(());
-                }
-                Some(ch) => {
-                    if ch == 'x' {
-                        monomial_string.insert(1, '1');
-                    }
+            if let Some(ch) = monomial_string.chars().nth(1) {
+                if ch == 'x' {
+                    monomial_string.insert(1, '1');
                 }
             }
 
@@ -132,13 +118,8 @@ impl FromStr for Polynomial {
         let mut polynomial = Polynomial::new();
 
         for monomial_string in monomial_strings {
-            match Monomial::from_str(monomial_string.as_str()) {
-                Ok(m) => {
-                    polynomial.push(m);
-                }
-                Err(_) => {
-                    return Err(());
-                }
+            if let Ok(m) = Monomial::from_str(monomial_string.as_str()) {
+                polynomial.push(m);
             }
         }
 
@@ -151,9 +132,7 @@ impl Add for Polynomial {
 
     fn add(self, rhs: Self) -> Self::Output {
         let mut res = self.clone();
-
         rhs.monomials.iter().for_each(|&m| res.push(m));
-
         res
     }
 }
@@ -163,9 +142,7 @@ impl Sub for Polynomial {
 
     fn sub(self, rhs: Self) -> Self::Output {
         let mut res = self.clone();
-
         rhs.monomials.iter().for_each(|&m| res.push(-m));
-
         res
     }
 }
