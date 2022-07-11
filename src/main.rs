@@ -8,29 +8,26 @@ mod polynomial;
 mod substr;
 
 fn main() {
-    let mut output_stream = std::io::stdout();
-    let input_stream = std::io::stdin();
-
     let mut buffer1 = String::new();
     let mut buffer2 = String::new();
 
-    output_stream
+    std::io::stdout()
         .write("Input the first polynomial with respect to x: ".as_bytes())
         .unwrap();
-    output_stream.flush().unwrap();
+    std::io::stdout().flush().unwrap();
 
-    input_stream
+    std::io::stdin()
         .read_line(&mut buffer1)
         .expect("Failed to read string");
 
     let polynomial1 = Polynomial::from_str(buffer1.trim()).expect("Invalid expression provided.");
 
-    output_stream
+    std::io::stdout()
         .write("Input the second polynomial with respect to x: ".as_bytes())
         .unwrap();
-    output_stream.flush().unwrap();
+    std::io::stdout().flush().unwrap();
 
-    input_stream
+    std::io::stdin()
         .read_line(&mut buffer2)
         .expect("Failed to read string");
 

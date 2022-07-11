@@ -75,8 +75,8 @@ impl FromStr for Monomial {
         if split.len() != 2 {
             Err(())
         } else {
-            let coefficient = i32::from_str(split[0]).expect("Invalid format provided.");
-            let power = i32::from_str(split[1]).expect("Invalid format provided.");
+            let coefficient = i32::from_str(split[0]).unwrap();
+            let power = i32::from_str(split[1]).unwrap();
 
             Ok(Monomial::new(coefficient, power))
         }
